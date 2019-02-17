@@ -1,11 +1,14 @@
+from pprint import pprint
+from datetime import datetime, timedelta
+import logging
+
 from elasticsearch_dsl import Index
 from elasticsearch import helpers
 import elasticsearch.exceptions
 from elasticsearch_dsl.connections import connections
-from cif.store.plugin import IndicatorManagerPlugin
-from pprint import pprint
-from datetime import datetime, timedelta
-import logging
+
+from cif.store.plugin.indicator import IndicatorManagerPlugin
+
 from .helpers import expand_ip_idx
 from .filters import filter_build
 from .constants import LIMIT, WINDOW_LIMIT, TIMEOUT, PARTITION

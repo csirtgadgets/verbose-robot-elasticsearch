@@ -6,8 +6,7 @@ include VERSION
 include MANIFEST.in
 include versioneer.py
 include cif_elasticsearch/_version.py
-recursive-include test *
-recursive-include rules *
+recursive-include tests *
 global-exclude *.retry
 global-exclude *.pyc
 global-exclude __pycache__

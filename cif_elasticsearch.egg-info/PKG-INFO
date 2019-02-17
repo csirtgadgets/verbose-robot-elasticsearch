@@ -1,0 +1,13 @@
+Metadata-Version: 1.1
+Name: cif-elasticsearch
+Version: 0+untagged.2.g3e2e372.dirty
+Summary: CIFv4 ElasticSearch STore
+Home-page: https://github.com/csirtgadgets/verbose-robot-elasticsearch
+Author: Wes Young
+Author-email: wes@csirtgadgets.com
+License: MPL2
+Description: UNKNOWN
+Keywords: security
+Platform: UNKNOWN
+Classifier: Topic :: System :: Networking
+Classifier: Programming Language :: Python

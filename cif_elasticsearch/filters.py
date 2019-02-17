@@ -1,5 +1,5 @@
 from csirtg_indicator.utils import resolve_itype
-from csirtg_indicator.exceptions import InvalidIndicator
+#from csirtg_indicator.exceptions import InvalidIndicator
 import socket
 import binascii
 from elasticsearch_dsl import Q
@@ -78,7 +78,7 @@ def filter_indicator(s, q_filters):
     try:
         itype = resolve_itype(i)
 
-    except InvalidIndicator:
+    except TypeError:
         if '%' in i:
             i = i.replace('%', '*')
 
