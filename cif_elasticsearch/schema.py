@@ -1,8 +1,15 @@
-from elasticsearch_dsl import DocType, Text, Date, Integer, Float, Ip, \
+from elasticsearch_dsl import Document, Text, Date, Integer, Float, Ip, \
     Keyword, GeoPoint, Boolean
 
 
-class Token(DocType):
+class Token(Document):
+    class Index:
+        name = 'tokens'
+        doc_type = 'token'
+
+    class Meta:
+        doc_type = 'token'
+
     username = Keyword()
     token = Keyword()
     expires = Date()
@@ -14,11 +21,16 @@ class Token(DocType):
     admin = Boolean()
     last_activity_at = Date()
 
+
+class Indicator(Document):
+
+    class Index:
+        name = 'indicators-*'
+        doc_type = 'indicator'
+
     class Meta:
-        index = 'tokens'
+        doc_type = 'indicator'
 
-
-class Indicator(DocType):
     indicator = Keyword()
     indicator_ipv4 = Ip()
     indicator_ipv4_mask = Integer()
@@ -33,7 +45,7 @@ class Indicator(DocType):
     asn_desc = Text()
     cc = Text(fields={'raw': Keyword()})
     protocol = Text(fields={'raw': Keyword()})
-    reporttime = Date()
+    reported_at = Date()
     last_at = Date()
     first_at = Date()
     confidence = Integer()

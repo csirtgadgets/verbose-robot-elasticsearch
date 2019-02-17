@@ -2,14 +2,13 @@
 import pytest
 from datetime import datetime
 
-from . import store
+from . import store, token
 
 
-def test_tokens(store):
-    t = store.store.tokens.admin_exists()
-    assert t
+def test_tokens(store, token):
+    assert token
 
-    t = list(store.store.tokens.search({'token': t}))
+    t = list(store.store.tokens.search({'token': token}))
     assert len(t) > 0
 
     t = t[0]['token']

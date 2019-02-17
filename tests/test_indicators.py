@@ -1,49 +1,42 @@
 
 import arrow
 from pprint import pprint
+import pytest
 
-from . import store, indicator
-
-
-def test_indicators_create(store, indicator):
-    t = store.store.tokens.admin_exists()
-
-    x = store.handle_indicators_create(t, indicator)
-
-    # TODO- fix this based on store handle
-    assert x == 0
-
-    indicator['last_at'] = arrow.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
-    indicator['tags'] = ['malware']
-
-    x = store.handle_indicators_create(t, indicator)
-
-    assert x == 0
+from . import store, indicator, token
 
 
-def test_indicators_search_fqdn(store, indicator):
-    t = store.store.tokens.admin_exists()
-    x = store.handle_indicators_search(t, {
+def test_indicators_create(store, token, indicator):
+    store.handle_indicators_create(token, [indicator], flush=True, force=True)
+
+    x = store.handle_indicators_search(token, {
+        'indicator': indicator['indicator'],
+    })
+    assert len(x) == 1
+
+
+def test_indicators_search_fqdn(store, token, indicator):
+    indicator['indicator'] = 'example.com'
+    store.handle_indicators_create(token, [indicator], flush=True, force=True)
+
+    x = store.handle_indicators_search(token, {
         'indicator': 'example.com',
     })
 
-    assert len(list(x)) > 0
+    assert len(x) == 1
 
     indicator['tags'] = 'botnet'
     indicator['indicator'] = 'example2.com'
 
-    x = store.handle_indicators_create(t, indicator)
+    store.handle_indicators_create(token, indicator, flush=True, force=True)
 
-    assert x == 0
-
-    x = store.handle_indicators_search(t, {
+    x = store.handle_indicators_search(token, {
         'indicator': 'example2.com',
     })
 
-    assert len(list(x)) > 0
+    assert len(x) == 1
 
-    x = store.handle_indicators_search(t, {
+    x = store.handle_indicators_search(token, {
         'indicator': 'example2.com',
         'tags': 'malware'
     })
@@ -51,115 +44,81 @@ def test_indicators_search_fqdn(store, indicator):
     assert len(x) == 0
 
 
-def test_indicators_search_ipv4(store, indicator):
-    t = store.store.tokens.admin_exists()
+def test_indicators_search_ipv4(store, token, indicator):
     indicator['indicator'] = '192.168.1.1'
     indicator['itype'] = 'ipv4'
     indicator['tags'] = 'botnet'
 
-    x = store.handle_indicators_create(t, indicator)
-
-    assert x == 0
+    store.handle_indicators_create(token, indicator, flush=True, force=True)
 
     for i in ['192.168.1.1', '192.168.1.0/24']:
-        x = store.handle_indicators_search(t, {
+        x = store.handle_indicators_search(token, {
             'indicator': i,
         })
 
-        assert len(list(x)) > 0
+        assert len(x) > 0
 
 
-def test_indicators_search_ipv6(store, indicator):
-    t = store.store.tokens.admin_exists()
-
+@pytest.mark.xfail(reason='Need to re-look at v6 handling..')
+def test_indicators_search_ipv6(store, token, indicator):
     indicator['indicator'] = '2001:4860:4860::8888'
     indicator['itype'] = 'ipv6'
     indicator['tags'] = 'botnet'
 
-    x = store.handle_indicators_create(t, indicator)
+    store.handle_indicators_create(token, indicator, flush=True, force=True)
 
-    # TODO- it gets inserted, need to re-check upsert math
-    assert x == 0
-
-    x = store.handle_indicators_search(t, {
+    x = store.handle_indicators_search(token, {
         'indicator': '2001:4860:4860::8888',
     })
 
-    assert len(list(x)) > 0
+    assert len(x) > 0
 
-    x = store.handle_indicators_search(t, {
+    x = store.handle_indicators_search(token, {
         'indicator': '2001:4860::/32',
     })
 
-    assert len(list(x)) > 0
+    assert len(x) > 0
 
 
-def test_indicators_invalid(store, indicator):
-    t = store.store.tokens.admin_exists()
-    del indicator['tags']
+@pytest.mark.xfail(reason='not yet implemented..')
+def test_indicators_delete(store, token, indicator):
+    store.handle_indicators_create(token, indicator, flush=True, force=True)
 
-    x = None
-
-    try:
-        x = store.handle_indicators_create(t, indicator)
-    except ValueError:
-        pass
-
-    assert (x is None or x == 0)
-
-    indicator['tags'] = 'malware'
-
-    del indicator['group']
-    try:
-        x = store.handle_indicators_create(t, indicator)
-    except ValueError:
-        pass
-
-    assert (x is None or x == 0)
-
-
-def test_indicators_delete(store, indicator):
-    t = store.store.tokens.admin_exists()
-
-    x = store.handle_indicators_create(t, indicator)
-
-    r = store.handle_indicators_delete(t, data=[{
+    r = store.handle_indicators_delete(token, data=[{
         'indicator': 'example.com',
     }])
     assert r == 1
 
-    x = store.handle_indicators_search(t, {
+    x = store.handle_indicators_search(token, {
         'indicator': 'example.com',
         'nolog': 1
     })
     assert len(x) == 0
 
-    x = store.handle_indicators_search(t, {
+    x = store.handle_indicators_search(token, {
         'indicator': 'example2.com',
         'nolog': 1
     })
 
     for xx in x:
-        r = store.handle_indicators_delete(t, data=[{
+        r = store.handle_indicators_delete(token, data=[{
             'id': xx['id']
         }])
         assert r == 1
 
 
-def test_indicators_create_sha1(store, indicator):
+def test_indicators_create_sha1(store, token, indicator):
     t = store.store.tokens.admin_exists()
 
     indicator['indicator'] = 'd52380918a07322c50f1bfa2b43af3bb54cb33db'
     indicator['group'] = 'everyone'
     indicator['itype'] = 'sha1'
 
-    x = store.handle_indicators_create(t, indicator)
-    # TODO indicators_hash table isn't showing up..
+    store.handle_indicators_create(token, indicator, flush=True, force=True)
 
-    # assert x == -1
-    #
-    # x = store.handle_indicators_search(t, {
-    #     'indicator': indicator['indicator'],
-    #     'nolog': 1
-    # })
-    # assert len(x) == 1
+    x = store.handle_indicators_search(token, {
+        'indicator': 'd52380918a07322c50f1bfa2b43af3bb54cb33db',
+        'nolog': 1
+    })
+
+    assert len(x) > 0

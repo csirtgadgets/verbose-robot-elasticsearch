@@ -4,21 +4,39 @@ from cif.store import Store
 from csirtg_indicator import Indicator
 from elasticsearch_dsl.connections import connections
 import arrow
+from pprint import pprint
 
+
+def _del_index(idx):
+    connections.get_connection().indices.delete(index=idx)
 
 @pytest.yield_fixture
 def store():
-    with Store(store_type='elasticsearch', nodes='127.0.0.1:9200') as s:
-        s._load_plugin(nodes='127.0.0.1:9200')
-        try:
-            connections.get_connection().indices.delete(index='indicators-*')
-            connections.get_connection().indices.delete(index='tokens')
-        except Exception as e:
-            pass
+    try:
+        [_del_index(i) for i in ['indicators-*', 'tokens']]
+
+    except Exception as e:
+        pass
+
+    with Store(store_type='elasticsearch') as s:
+
         yield s
 
-    assert connections.get_connection().indices.delete(index='indicators-*')
-    assert connections.get_connection().indices.delete(index='tokens')
+    [_del_index(i) for i in ['indicators-*', 'tokens']]
+
+
+@pytest.yield_fixture
+def token(store):
+    t = store.store.tokens.create({
+        'username': 'test_admin',
+        'groups': ['everyone'],
+        'read': True,
+        'write': True,
+        'admin': True
+    })
+
+    assert t
+    yield t['token']
 
 
 @pytest.fixture
@@ -34,6 +52,7 @@ def indicator():
         'count': 1
     }
 
+
 @pytest.fixture
 def indicator():
     return Indicator(
@@ -43,7 +62,7 @@ def indicator():
         group='everyone',
         lasttime=arrow.utcnow().datetime,
         reporttime=arrow.utcnow().datetime
-    )
+    ).__dict__()
 
 
 @pytest.fixture
@@ -55,7 +74,7 @@ def indicator_email():
         group='everyone',
         lasttime=arrow.utcnow().datetime,
         reporttime=arrow.utcnow().datetime
-    )
+    ).__dict__()
 
 
 @pytest.fixture
@@ -67,7 +86,8 @@ def indicator_ipv6():
         group='everyone',
         lasttime=arrow.utcnow().datetime,
         reporttime=arrow.utcnow().datetime
-    )
+    ).__dict__()
+
 
 @pytest.fixture
 def indicator_url():
@@ -78,7 +98,8 @@ def indicator_url():
         group='everyone',
         lasttime=arrow.utcnow().datetime,
         reporttime=arrow.utcnow().datetime
-    )
+    ).__dict__()
+
 
 @pytest.fixture
 def indicator_malware():
@@ -89,18 +110,4 @@ def indicator_malware():
         group='everyone',
         lasttime=arrow.utcnow().datetime,
         reporttime=arrow.utcnow().datetime
-    )
-
-
-@pytest.yield_fixture
-def token(store):
-    t = store.store.tokens.create({
-        'username': u'test_admin',
-        'groups': [u'everyone'],
-        'read': u'1',
-        'write': u'1',
-        'admin': u'1'
-    })
-
-    assert t
-    yield t['token']
+    ).__dict__()

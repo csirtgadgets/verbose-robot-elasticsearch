@@ -1,4 +1,4 @@
-from elasticsearch_dsl import DocType, Keyword, Date, Boolean
+from elasticsearch_dsl import Index
 import elasticsearch.exceptions
 from elasticsearch_dsl.connections import connections
 import arrow
@@ -9,7 +9,7 @@ import os
 from cif.store.plugin.token import TokenManagerPlugin
 from .schema import Token
 
-logger = logging.getLogger('cif.store.zelasticsearch')
+logger = logging.getLogger(__name__)
 
 CONFLICT_RETRIES = os.getenv('CIF_STORE_ES_CONFLICT_RETRIES', 5)
 CONFLICT_RETRIES = int(CONFLICT_RETRIES)
@@ -19,7 +19,23 @@ class TokenManager(TokenManagerPlugin):
     def __init__(self, *args, **kwargs):
         super(TokenManager, self).__init__(**kwargs)
 
-        self.handle = connections.get_connection()
+        self.handle = connections.get_connection
+        self.index = 'tokens'
+
+        self._create_index()
+
+    def _create_index(self):
+        if self.handle().indices.exists(self.index):
+            return
+
+        index = Index(self.index)
+        index.settings(
+            number_of_shards=3,
+            number_of_replicas=3
+        )
+        index.document(Token)
+        index.create()
+        self.handle().indices.flush(self.index)
 
     def search(self, data, raw=False):
         s = Token.search()
@@ -65,7 +81,7 @@ class TokenManager(TokenManagerPlugin):
         t = Token(**data)
 
         if t.save():
-            self.handle.indices.flush(index='tokens')
+            self.handle().indices.flush(index='tokens')
             return t.to_dict()
 
     def delete(self, data):
@@ -81,7 +97,7 @@ class TokenManager(TokenManagerPlugin):
             t = Token.get(t['_id'])
             t.delete()
 
-        self.handle.indices.flush(index='tokens')
+        self.handle().indices.flush(index='tokens')
         return len(list(rv))
 
     def edit(self, data):
@@ -93,7 +109,7 @@ class TokenManager(TokenManagerPlugin):
             return 'token not found'
 
         d.update(fields=data)
-        self.handle.indices.flush(index='tokens')
+        self.handle().indices.flush(index='tokens')
 
     def update_last_activity_at(self, token, timestamp):
         if isinstance(timestamp, str):

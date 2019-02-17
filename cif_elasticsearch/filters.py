@@ -44,7 +44,7 @@ def filter_confidence(s, filter):
 
     c = filter.pop('confidence')
 
-    low, high = c, 10.0
+    low, high = c, 4.0
     if ',' in c:
         low, high = c.split(',')
 
@@ -52,11 +52,11 @@ def filter_confidence(s, filter):
                     confidence={'gte': float(low), 'lte': float(high)})
 
 
-def filter_reporttime(s, filter):
-    if not filter.get('reporttime'):
+def filter_reported_at(s, filter):
+    if not filter.get('reported_at'):
         return s
 
-    c = filter.pop('reporttime')
+    c = filter.pop('reported_at')
 
     low, high = c, arrow.utcnow()
     if ',' in c:
@@ -65,11 +65,12 @@ def filter_reporttime(s, filter):
     low = arrow.get(low).datetime
     high = arrow.get(high).datetime
 
-    s = s.filter('range', reporttime={'gte': low, 'lte': high})
+    s = s.filter('range', reported_at={'gte': low, 'lte': high})
     return s
 
 
 def filter_indicator(s, q_filters):
+    from pprint import pprint
     if not q_filters.get('indicator'):
         return s
 
@@ -156,7 +157,7 @@ def filter_build(s, filters, token=None):
 
     s = filter_confidence(s, q_filters)
 
-    s = filter_reporttime(s, q_filters)
+    s = filter_reported_at(s, q_filters)
 
     # transform all other filters into term=
     s = filter_terms(s, q_filters)

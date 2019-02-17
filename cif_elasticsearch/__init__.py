@@ -12,8 +12,8 @@ from .indicator import IndicatorManager
 from .token import TokenManager
 
 ES_NODES = os.getenv('CIF_ES_NODES', '127.0.0.1:9200')
-TRACE = os.environ.get('CIF_STORE_ES_TRACE')
-TRACE_HTTP = os.getenv('CIF_STORE_ES_HTTP_TRACE')
+TRACE = os.environ.get('CIF_ES_TRACE')
+TRACE_HTTP = os.getenv('CIF_ES_HTTP_TRACE')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -34,20 +34,11 @@ class ES(Store):
 
     name = 'elasticsearch'
 
-    def __init__(self, nodes=ES_NODES, **kwargs):
-
-        if type(nodes) == str:
-            nodes = nodes.split(',')
-
-        if not nodes:
-            nodes = ES_NODES
-
+    def __init__(self, **kwargs):
         self.indicators_prefix = kwargs.get('indicators_prefix', 'indicators')
         self.tokens_prefix = kwargs.get('tokens_prefix', 'tokens')
 
-        logger.info('setting es nodes {}'.format(nodes))
-
-        connections.create_connection(hosts=nodes)
+        connections.create_connection(hosts=kwargs.get('nodes', ES_NODES))
 
         self._alive = False
 
