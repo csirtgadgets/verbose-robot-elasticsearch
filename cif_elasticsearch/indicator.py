@@ -9,7 +9,7 @@ from elasticsearch_dsl.connections import connections
 
 from cif.store.plugin.indicator import IndicatorManagerPlugin
 
-from .helpers import expand_ip_idx
+from .helpers import expand_ip_idx, expand_location
 from .filters import filter_build
 from .schema import Indicator
 from .constants import LIMIT, WINDOW_LIMIT, TIMEOUT, PARTITION
@@ -112,6 +112,7 @@ class IndicatorManager(IndicatorManagerPlugin):
 
     def _create_action(self, token, indicator, index):
         expand_ip_idx(indicator)
+        expand_location(indicator)
 
         return {
             '_index': index,

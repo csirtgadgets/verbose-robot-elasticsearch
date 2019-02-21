@@ -39,6 +39,15 @@ def expand_ip_idx(data):
             ).decode('utf-8')
 
 
+def expand_location(indicator):
+    if not indicator.get('latitude'):
+        return
+    
+    indicator['location'] = {}
+    indicator['location']['lat'] = indicator.get('latitude')
+    indicator['location']['lon'] = indicator.get('longitude')
+
+
 def _id_random(i):
     id = str(uuid.uuid4())
     id = sha256(id.encode('utf-8')).hexdigest()

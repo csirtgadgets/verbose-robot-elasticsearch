@@ -45,7 +45,7 @@ def filter_confidence(s, filter):
     c = filter.pop('confidence')
 
     low, high = c, 4.0
-    if ',' in c:
+    if isinstance(c, str) and ',' in c:
         low, high = c.split(',')
 
     return s.filter('range',
