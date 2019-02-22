@@ -2,8 +2,6 @@ from csirtg_indicator.utils import resolve_itype
 import re
 import binascii
 import socket
-import uuid
-from hashlib import sha256
 
 
 def expand_ip_idx(data):
@@ -46,27 +44,3 @@ def expand_location(indicator):
     indicator['location'] = {}
     indicator['location']['lat'] = indicator.get('latitude')
     indicator['location']['lon'] = indicator.get('longitude')
-
-
-def _id_random(i):
-    id = str(uuid.uuid4())
-    id = sha256(id.encode('utf-8')).hexdigest()
-    return id
-
-
-def _id_deterministic(i):
-    tags = ','.join(sorted(i['tags']))
-    groups = ','.join(sorted(i['group']))
-
-    id = ','.join([groups, i['provider'], i['indicator'], tags])
-    ts = i.get('reporttime')
-    ts = i.get('lasttime')
-    if ts:
-        id = '{},{}'.format(id, ts)
-
-    return id
-
-
-def i_to_id(i):
-    id = _id_deterministic(i)
-    return sha256(id.encode('utf-8')).hexdigest()

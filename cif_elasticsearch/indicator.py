@@ -110,7 +110,8 @@ class IndicatorManager(IndicatorManagerPlugin):
 
         logger.debug('query took: %0.2f' % (time.time() - start))
 
-    def _create_action(self, token, indicator, index):
+    @staticmethod
+    def _create_action(indicator, index):
         expand_ip_idx(indicator)
         expand_location(indicator)
 
@@ -125,7 +126,7 @@ class IndicatorManager(IndicatorManagerPlugin):
         
         helpers.bulk(
             self.handle(),
-            [self._create_action(token, i, index) for i in indicators],
+            [self._create_action(i, index) for i in indicators],
             index=self._current_index()
         )
 
