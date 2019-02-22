@@ -2,7 +2,7 @@ from pprint import pprint
 from datetime import datetime, timedelta
 import logging
 
-from elasticsearch_dsl import Index
+from elasticsearch_dsl import Index, Search
 from elasticsearch import helpers
 import elasticsearch.exceptions
 from elasticsearch_dsl.connections import connections
@@ -16,16 +16,19 @@ from .constants import LIMIT, WINDOW_LIMIT, TIMEOUT, PARTITION
 
 import time
 
-logger = logging.getLogger('cif_elasticsearch')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
+class Deserializer(object):
+    def __init__(self):
+        pass
+
+    def loads(self, s, mimetype=None):
+        return s
 
 
 class IndicatorManager(IndicatorManagerPlugin):
-    class Deserializer(object):
-        def __init__(self):
-            pass
-
-        def loads(self, s, mimetype=None):
-            return s
 
     def __init__(self, *args, **kwargs):
         super(IndicatorManager, self).__init__(*args, **kwargs)
@@ -79,36 +82,33 @@ class IndicatorManager(IndicatorManagerPlugin):
         self.last_index_check = datetime.utcnow()
         return idx
 
-    def search(self, token, filters, sort='-reported_at', raw=False,
-               timeout=TIMEOUT):
+    def search(self, token, filters, sort='-reported_at', timeout=TIMEOUT):
+        # TODO- pretty sure with larger feeds there's a constant memory leak
+        # with the results, so we may need to build a custom de-serializer
+        # as we did in v3
+        # https://github.com/elastic/elasticsearch-py/blob/master/elasticsearch/helpers/actions.py#L313
         limit = filters.get('limit', LIMIT)
+        limit = int(limit)
 
-        s = Indicator.search(index='{}-*'.format(self.indicators_prefix))
-        s = s.params(size=limit, timeout=timeout)
+        s = Indicator.search(index=Indicator.Index.name)
+        s = s.params(size=WINDOW_LIMIT, timeout=timeout)
         s = s.sort(sort)
 
         s = filter_build(s, filters, token=token)
-
-        logger.debug(s.to_dict())
+        #pprint(s.to_dict())
 
         start = time.time()
 
-        rv = self.handle().search(
-            index=Indicator.Index.name,
-            doc_type=Indicator.Index.doc_type,
-            body=s.to_dict(),
-            filter_path=['hits.hits._source'],
-            **s._params)
+        for r in helpers.scan(self.handle(), index='indicators-*',
+                              query=s.to_dict(), scroll='2m'):
+
+            yield r['_source']
+
+            limit -= 1
+            if limit == 0:
+                break
 
         logger.debug('query took: %0.2f' % (time.time() - start))
-
-        if len(rv) == 0:
-            return []
-
-        if raw:
-            return rv
-
-        return [r['_source'] for r in rv['hits']['hits']]
 
     def _create_action(self, token, indicator, index):
         expand_ip_idx(indicator)
