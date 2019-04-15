@@ -12,7 +12,7 @@ from cif.store.plugin.indicator import IndicatorManagerPlugin
 from .helpers import expand_ip_idx, expand_location
 from .filters import filter_build
 from .schema import Indicator
-from .constants import LIMIT, WINDOW_LIMIT, TIMEOUT, PARTITION
+from .constants import LIMIT, WINDOW_LIMIT, TIMEOUT, PARTITION, SHARDS, REPLICAS
 
 import time
 
@@ -39,7 +39,7 @@ class IndicatorManager(IndicatorManagerPlugin):
         self.last_index_check = datetime.now() - timedelta(minutes=5)
         self.handle = connections.get_connection
 
-        self._create_index()
+        self._create_index(force=True)
 
     def flush(self):
         self.handle().indices.flush(index=self._current_index())
@@ -58,23 +58,24 @@ class IndicatorManager(IndicatorManagerPlugin):
 
         return '{}-{}'.format(self.indicators_prefix, dt)
 
-    def _create_index(self):
+    def _create_index(self, force=False):
         # https://github.com/csirtgadgets/massive-octo-spice/blob/develop/elasticsearch/observables.json
         # http://elasticsearch-py.readthedocs.org/en/master/api.html#elasticsearch.Elasticsearch.bulk
         idx = self._current_index()
 
         # every time we check it does a HEAD req
-        if (datetime.utcnow() - self.last_index_check) < timedelta(minutes=2):
+        if not force and ((datetime.utcnow() - self.last_index_check) < timedelta(minutes=1)):
             return idx
 
         if not self.handle().indices.exists(idx):
+            logger.debug(f"building index: {idx}")
             index = Index(idx)
             index.aliases(live={})
             index.document(Indicator)
             index.settings(
                 max_result_window=WINDOW_LIMIT,
-                number_of_shards=3,
-                number_of_replicas=2
+                number_of_shards=SHARDS,
+                number_of_replicas=REPLICAS
             )
             index.create()
             self.handle().indices.flush(idx)
@@ -114,12 +115,16 @@ class IndicatorManager(IndicatorManagerPlugin):
     def _create_action(indicator, index):
         expand_ip_idx(indicator)
         expand_location(indicator)
+        indicator['created_at'] = datetime.utcnow()
 
         return {
             '_index': index,
             '_type': Indicator.Index.doc_type,
             '_source': indicator
         }
+
+    def upsert(self, token, indicators, **kwargs):
+        return self.create(token, indicators, **kwargs)
 
     def create(self, token, indicators, flush=False):
         index = self._create_index()

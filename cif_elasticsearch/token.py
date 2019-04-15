@@ -1,13 +1,16 @@
-from elasticsearch_dsl import Index
-import elasticsearch.exceptions
-from elasticsearch_dsl.connections import connections
 import arrow
 from pprint import pprint
 import logging
 import os
 
+from elasticsearch_dsl import Index
+import elasticsearch.exceptions
+from elasticsearch_dsl.connections import connections
+
+
 from cif.store.plugin.token import TokenManagerPlugin
 from .schema import Token
+from .constants import SHARDS, REPLICAS
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +33,8 @@ class TokenManager(TokenManagerPlugin):
 
         index = Index(self.index)
         index.settings(
-            number_of_shards=3,
-            number_of_replicas=3
+            number_of_shards=1,  # shoudn't ever need more than 1
+            number_of_replicas=REPLICAS  # this should scale with the indicators index
         )
         index.document(Token)
         index.create()
@@ -77,6 +80,8 @@ class TokenManager(TokenManagerPlugin):
 
         if data.get('token') is None:
             data['token'] = self._generate()
+
+        data['created_at'] = arrow.utcnow().datetime
 
         t = Token(**data)
 
@@ -124,7 +129,9 @@ class TokenManager(TokenManagerPlugin):
             return timestamp
 
         rv = list(self.search({'token': token}, raw=True))
+        pprint(rv)
         rv = Token.get(rv[0]['_id'])
+        pprint(rv)
 
         try:
             rv.update(last_activity_at=timestamp,
