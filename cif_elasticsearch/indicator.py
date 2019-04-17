@@ -96,7 +96,6 @@ class IndicatorManager(IndicatorManagerPlugin):
         s = s.sort(sort)
 
         s = filter_build(s, filters, token=token)
-        #pprint(s.to_dict())
 
         start = time.time()
 

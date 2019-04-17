@@ -62,10 +62,6 @@ class TokenManager(TokenManagerPlugin):
             return
 
         for x in rv.hits.hits:
-            # update cache
-            if x['_source']['token'] not in self._cache:
-                self._cache[x['_source']['token']] = x['_source']
-
             if raw:
                 yield x
 
@@ -116,12 +112,11 @@ class TokenManager(TokenManagerPlugin):
         d.update(fields=data)
         self.handle().indices.flush(index='tokens')
 
-    def update_last_activity_at(self, token, timestamp):
+    def update_last_activity_at(self, token, timestamp=arrow.utcnow().datetime):
         if isinstance(timestamp, str):
             timestamp = arrow.get(timestamp).datetime
 
         if self._cache_check(token):
-
             if self._cache[token].get('last_activity_at'):
                 return self._cache[token]['last_activity_at']
 
@@ -129,18 +124,19 @@ class TokenManager(TokenManagerPlugin):
             return timestamp
 
         rv = list(self.search({'token': token}, raw=True))
-        pprint(rv)
+
         rv = Token.get(rv[0]['_id'])
-        pprint(rv)
 
         try:
-            rv.update(last_activity_at=timestamp,
-                      retry_on_conflict=CONFLICT_RETRIES)
+            rv.update(last_activity_at=timestamp)
             self._cache[token] = rv.to_dict()
             self._cache[token]['last_activity_at'] = timestamp
 
+        except elasticsearch.exceptions.ConflictError:
+            # another thread beat us to it...
+            pass
+
         except Exception as e:
-            import traceback
-            logger.error(traceback.print_exc())
+            logger.error(e)
 
         return timestamp
