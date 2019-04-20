@@ -17,3 +17,6 @@ TIMEOUT = os.getenv('CIF_ES_TIMEOUT', TIMEOUT)
 TIMEOUT = '{}s'.format(TIMEOUT)
 
 PARTITION = os.getenv('CIF_STORE_ES_PARTITION', 'month')
+
+SHARDS = os.getenv('CIF_ES_SHARDS', 1)
+REPLICAS = os.getenv('CIF_ES_REPLICAS', 0)

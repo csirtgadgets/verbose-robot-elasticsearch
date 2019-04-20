@@ -1,13 +1,16 @@
-from elasticsearch_dsl import Index
-import elasticsearch.exceptions
-from elasticsearch_dsl.connections import connections
 import arrow
 from pprint import pprint
 import logging
 import os
 
+from elasticsearch_dsl import Index
+import elasticsearch.exceptions
+from elasticsearch_dsl.connections import connections
+
+
 from cif.store.plugin.token import TokenManagerPlugin
 from .schema import Token
+from .constants import SHARDS, REPLICAS
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +33,8 @@ class TokenManager(TokenManagerPlugin):
 
         index = Index(self.index)
         index.settings(
-            number_of_shards=3,
-            number_of_replicas=3
+            number_of_shards=1,  # shoudn't ever need more than 1
+            number_of_replicas=REPLICAS  # this should scale with the indicators index
         )
         index.document(Token)
         index.create()
@@ -59,10 +62,6 @@ class TokenManager(TokenManagerPlugin):
             return
 
         for x in rv.hits.hits:
-            # update cache
-            if x['_source']['token'] not in self._cache:
-                self._cache[x['_source']['token']] = x['_source']
-
             if raw:
                 yield x
 
@@ -77,6 +76,8 @@ class TokenManager(TokenManagerPlugin):
 
         if data.get('token') is None:
             data['token'] = self._generate()
+
+        data['created_at'] = arrow.utcnow().datetime
 
         t = Token(**data)
 
@@ -111,12 +112,11 @@ class TokenManager(TokenManagerPlugin):
         d.update(fields=data)
         self.handle().indices.flush(index='tokens')
 
-    def update_last_activity_at(self, token, timestamp):
+    def update_last_activity_at(self, token, timestamp=arrow.utcnow().datetime):
         if isinstance(timestamp, str):
             timestamp = arrow.get(timestamp).datetime
 
         if self._cache_check(token):
-
             if self._cache[token].get('last_activity_at'):
                 return self._cache[token]['last_activity_at']
 
@@ -124,16 +124,19 @@ class TokenManager(TokenManagerPlugin):
             return timestamp
 
         rv = list(self.search({'token': token}, raw=True))
+
         rv = Token.get(rv[0]['_id'])
 
         try:
-            rv.update(last_activity_at=timestamp,
-                      retry_on_conflict=CONFLICT_RETRIES)
+            rv.update(last_activity_at=timestamp)
             self._cache[token] = rv.to_dict()
             self._cache[token]['last_activity_at'] = timestamp
 
+        except elasticsearch.exceptions.ConflictError:
+            # another thread beat us to it...
+            pass
+
         except Exception as e:
-            import traceback
-            logger.error(traceback.print_exc())
+            logger.error(e)
 
         return timestamp

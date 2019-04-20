@@ -1,5 +1,4 @@
-from elasticsearch_dsl import Document, Text, Date, Integer, Float, Ip, \
-    Keyword, GeoPoint, Boolean
+from elasticsearch_dsl import Document, Text, Date, Integer, Float, Ip, Keyword, GeoPoint, Boolean
 
 
 class Token(Document):
@@ -20,6 +19,7 @@ class Token(Document):
     groups = Keyword()
     admin = Boolean()
     last_activity_at = Date()
+    created_at = Date()
 
 
 class Indicator(Document):
@@ -34,7 +34,7 @@ class Indicator(Document):
     indicator = Keyword()
     indicator_ipv4 = Ip()
     indicator_ipv4_mask = Integer()
-    indicator_ipv6 = Keyword()
+    indicator_ipv6 = Ip()
     indicator_ipv6_mask = Integer()
     group = Keyword()
     itype = Keyword()
@@ -45,9 +45,6 @@ class Indicator(Document):
     asn_desc = Text()
     cc = Text(fields={'raw': Keyword()})
     protocol = Text(fields={'raw': Keyword()})
-    reported_at = Date()
-    last_at = Date()
-    first_at = Date()
     confidence = Integer()
     probability = Float()
     timezone = Text()
@@ -58,3 +55,12 @@ class Indicator(Document):
     count = Integer()
     message = Text(multi=True)
     location = GeoPoint()
+    region = Keyword()
+    latitude = Float()
+    longitude = Float()
+    ns = Keyword()
+    mx = Keyword()
+    reported_at = Date()
+    last_at = Date()
+    first_at = Date()
+    created_at = Date()
