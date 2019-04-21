@@ -1,5 +1,11 @@
 import os
 
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
+
+VERSION = __version__
+
 VALID_FILTERS = ['indicator', 'confidence', 'provider', 'itype', 'group',
                  'tags', 'rdata']
 
