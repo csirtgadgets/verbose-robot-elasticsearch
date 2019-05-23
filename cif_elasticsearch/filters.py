@@ -52,6 +52,20 @@ def filter_confidence(s, filter):
                     confidence={'gte': float(low), 'lte': float(high)})
 
 
+def filter_probability(s, filter):
+    if not filter.get('probability'):
+        return s
+
+    c = filter.pop('probability')
+
+    low, high = c, 4.0
+    if isinstance(c, str) and ',' in c:
+        low, high = c.split(',')
+
+    return s.filter('range',
+                    confidence={'gte': float(low), 'lte': float(high)})
+
+
 def filter_reported_at(s, filter):
     if not filter.get('reported_at'):
         return s
@@ -156,6 +170,8 @@ def filter_build(s, filters, token=None):
     s = filter_indicator(s, q_filters)
 
     s = filter_confidence(s, q_filters)
+
+    s = filter_probability(s, q_filters)
 
     s = filter_reported_at(s, q_filters)
 
