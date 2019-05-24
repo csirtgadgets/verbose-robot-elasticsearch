@@ -92,21 +92,24 @@ class IndicatorManager(IndicatorManagerPlugin):
         limit = int(limit)
 
         s = Indicator.search(index=Indicator.Index.name)
-        s = s.params(size=WINDOW_LIMIT, timeout=timeout)
+        s = s.params(size=limit, timeout=timeout)
         s = s.sort(sort)
 
         s = filter_build(s, filters, token=token)
 
         start = time.time()
 
-        for r in helpers.scan(self.handle(), index='indicators-*',
-                              query=s.to_dict(), scroll='2m'):
+        try:
+            rv = s.execute()
+        except Exception as e:
+            logger.error(e)
+            return
 
-            yield r['_source']
+        if rv.hits.total == 0:
+            return
 
-            limit -= 1
-            if limit == 0:
-                break
+        for x in rv.hits.hits:
+            yield x['_source']
 
         logger.debug('query took: %0.2f' % (time.time() - start))
 
