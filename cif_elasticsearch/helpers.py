@@ -44,5 +44,5 @@ def expand_location(indicator):
         return
     
     indicator['location'] = {}
-    indicator['location']['lat'] = indicator.get('latitude')
-    indicator['location']['lon'] = indicator.get('longitude')
+    indicator['location']['lat'] = indicator.get('latitude', 0)
+    indicator['location']['lon'] = indicator.get('longitude', 0)
