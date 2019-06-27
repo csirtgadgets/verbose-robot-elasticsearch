@@ -97,6 +97,11 @@ class IndicatorManager(IndicatorManagerPlugin):
 
         s = filter_build(s, filters, token=token)
 
+        s = s[:limit]
+
+        # from pprint import pprint
+        # pprint(s.to_dict())
+
         start = time.time()
 
         try:
@@ -104,6 +109,8 @@ class IndicatorManager(IndicatorManagerPlugin):
         except Exception as e:
             logger.error(e)
             return
+
+        logger.debug(f"hits: {rv.hits.total}")
 
         if rv.hits.total == 0:
             return
