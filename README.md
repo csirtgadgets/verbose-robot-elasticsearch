@@ -43,6 +43,7 @@ docker run \
  --ulimit nofile=${ULIMIT}:${ULIMIT} \
  -v "${DOCKER_CONFIGS}/data/:/var/lib/cif" \
  -v "${DOCKER_CONFIGS}/logs/:/var/log/cif" \
+ --log-opt max-size=1024m --log-opt max-file=5 \
  --name verbose-robot csirtgadgets/verbose-robot:latest
 ```
 
