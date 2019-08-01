@@ -49,7 +49,6 @@ setup(
     author_email="wes@csirtgadgets.com",
     packages=find_packages(exclude=("tests",)),
     install_requires=[
-        'verbose-robot',
         'elasticsearch-dsl'
     ],
     scripts=[],

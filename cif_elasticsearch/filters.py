@@ -84,7 +84,6 @@ def filter_reported_at(s, filter):
 
 
 def filter_indicator(s, q_filters):
-    from pprint import pprint
     if not q_filters.get('indicator'):
         return s
 
@@ -158,6 +157,15 @@ def filter_groups(s, q_filters, token=None):
     s.query = Q('bool', must=s.query, should=gg, minimum_should_match=1)
 
     return s
+
+
+def filter_build_bulk(s, filters, token=None):
+    queries = []
+    for f in filters:
+        queries.append(Q("term", indicator=f['indicator']))
+
+    q = Q("bool", should=queries)
+    return s.query(q)
 
 
 def filter_build(s, filters, token=None):

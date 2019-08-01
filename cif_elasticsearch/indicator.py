@@ -10,7 +10,7 @@ from elasticsearch_dsl.connections import connections
 from cif.store.plugin.indicator import IndicatorManagerPlugin
 
 from .helpers import expand_ip_idx, expand_location
-from .filters import filter_build
+from .filters import filter_build, filter_build_bulk
 from .schema import Indicator
 from .constants import LIMIT, WINDOW_LIMIT, TIMEOUT, PARTITION, SHARDS, REPLICAS
 
@@ -83,24 +83,31 @@ class IndicatorManager(IndicatorManagerPlugin):
         self.last_index_check = datetime.utcnow()
         return idx
 
+    def _search_bulk(self, s, filters, token):
+        pprint(filters)
+
+        s = s.filt
+        return s
+
     def search(self, token, filters, sort='-reported_at', timeout=TIMEOUT):
         # TODO- pretty sure with larger feeds there's a constant memory leak
         # with the results, so we may need to build a custom de-serializer
         # as we did in v3
         # https://github.com/elastic/elasticsearch-py/blob/master/elasticsearch/helpers/actions.py#L313
-        limit = filters.get('limit', LIMIT)
-        limit = int(limit)
 
+        limit = 500
         s = Indicator.search(index=Indicator.Index.name)
         s = s.params(size=limit, timeout=timeout)
+
+        if isinstance(filters, list) and len(filters) > 1:
+            s = filter_build_bulk(s, filters, token)
+        else:
+            limit = filters.get('limit', LIMIT)
+            s = filter_build(s, filters, token=token)
+
+        limit = int(limit)
         s = s.sort(sort)
-
-        s = filter_build(s, filters, token=token)
-
         s = s[:limit]
-
-        # from pprint import pprint
-        # pprint(s.to_dict())
 
         start = time.time()
 
