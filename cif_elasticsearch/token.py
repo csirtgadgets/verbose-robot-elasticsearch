@@ -125,7 +125,12 @@ class TokenManager(TokenManagerPlugin):
 
         rv = list(self.search({'token': token}, raw=True))
 
-        rv = Token.get(rv[0]['_id'])
+        try:
+            rv = Token.get(rv[0]['_id'])
+
+        except Exception as e:
+            logger.error(e, exc_info=True)
+            return timestamp
 
         try:
             rv.update(last_activity_at=timestamp)
